@@ -1,0 +1,196 @@
+\documentclass[12pt,a4paper,titlepage,final]{article}
+
+% cestina a fonty
+\usepackage[czech]{babel}
+\usepackage[latin2]{inputenc}
+% balicky pro odkazy
+\usepackage[bookmarksopen,colorlinks,plainpages=false,urlcolor=blue,unicode]{hyperref}
+
+\usepackage{url}
+% obrazky
+\usepackage[dvipdf]{graphicx}
+% velikost stranky
+\usepackage[top=3.5cm, left=2.5cm, text={17cm, 24cm}, ignorefoot]{geometry}
+
+\usepackage{multirow}
+\usepackage{pstricks,color}
+\usepackage{float}
+\restylefloat{table,figure}
+
+\begin{document}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% titulní strana
+
+% !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+\def\authorA{Bc. Radim Kubi¹, \url{xkubis03@stud.fit.vutbr.cz}}
+\def\projname{GSM lokalizace (Android)}
+% !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+\input{title.tex}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% obsah
+\pagestyle{plain}
+\pagenumbering{roman}
+\setcounter{page}{1}
+%\tableofcontents
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% textova zprava
+\newpage
+\pagestyle{plain}
+\pagenumbering{arabic}
+\setcounter{page}{1}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection*{Zadání}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Prostudujte si zpùsob lokalizace pomocí GSM/UMTS/LTE signálu. Ovìøte si mo¾nost
+získání potøebných údajù na Va¹em mobilním telefonu a~vytvoøte mobilní aplikaci,
+která bez pou¾ití signálu GPS a~pøipojení k~internetu (poèítá se s~offline
+databází potøebných údajù) vypoèítá aktuální pozici.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection*{Mo¾nosti OS Android}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Mobilní telefony s~operaèním systémem Android umo¾òují získání seznamu
+dostupných zá\-klad\-no\-vých stanic v~dosahu zaøízení. Slou¾í k~tomu
+následující funkce:
+
+\begin{itemize}
+  \item \texttt{public List<CellInfo> getAllCellInfo()} (od API~17),
+  \item \texttt{public List<NeighboringCellInfo> getNeighboringCellInfo()} (od
+  API~3),
+  \item \texttt{public CellLocation getCellLocation()} (od API~1),
+\end{itemize}
+v¹echny ze tøídy \texttt{android.telephony.TelephonyManager}.
+
+\subsubsection*{Tøída \texttt{CellInfo}}
+
+\texttt{CellInfo} je pouze abstraktní tøída pro podtøídy \texttt{CellInfoCdma},
+\texttt{CellInfoGsm}, \texttt{CellInfoLte} a~\texttt{CellInfoWcdma}. ®ádná
+z~tìchto podtøíd neobsahuje pøímo dostupné informace o~jednotlivých základnových
+stanicích, které reprezentují. K~získání bli¾¹ích informací se volají funkce
+\texttt{getCellIdentity()} a~\texttt{getCellSignalStrength()}.
+
+Podle podtøídy vrací funkce \texttt{getCellIdentity()} objekt tøídy:
+\begin{itemize}
+  \item \texttt{CellIdentityCdma},
+  \item \texttt{CellIdentityGsm},
+  \item \texttt{CellIdentityLte},
+  \item \texttt{CellIdentityWcdma},
+\end{itemize}
+které obsahují podrobnìj¹í identifikaci stanice (napø. LAC, CID, MCC, \dots).
+Stejnì tak funkce \texttt{getCellSignalStrength()} vrací objekt tøídy:
+\begin{itemize}
+  \item \texttt{CellSignalStrengthCdma},
+  \item \texttt{CellSignalStrengthGsm},
+  \item \texttt{CellSignalStrengthLte},
+  \item \texttt{CellSignalStrengthWcdma},
+\end{itemize}
+které obsahují podrobnìj¹í informaci o~síle signálu dané stanice v~rùzných
+jednotkách (napø. ASU, dBm, \dots).
+
+\subsubsection*{Tøída \texttt{NeighboringCellInfo}}
+
+\texttt{NeighboringCellInfo} tøída obsahuje vý¹e uvedené informace pøímo a~není
+tak tøeba z~ní získávat objekty jiných tøíd.
+
+\subsubsection*{Tøída \texttt{CellLocation}}
+
+Tato tøída je také abstraktní nadtøídou a~dìdí z~ní tøídy:
+
+\begin{itemize}
+  \item \texttt{CdmaCellLocation},
+  \item \texttt{GsmCellLocation},
+\end{itemize}
+které obsahují informace o~základnové stanici pøímo, bez získávání dal¹ích
+objektù.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection*{Implementace}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Aplikace se skládá ze ¹esti tøíd:
+
+\begin{itemize}
+  \item \texttt{Cell} -- pro objekty jednotlivých stanic,
+  \item \texttt{CellsAdapter} -- správa stanic v~dosahu,
+  \item \texttt{CellsDataSource} -- pøístup k~offline databázi stanic,
+  \item \texttt{CellType} -- výèet typù základnových stanic,
+  \item \texttt{MainActivity} -- hlavní tøída grafického u¾ivatelského rozhraní,
+  \item \texttt{SQLiteHelper} -- pomocná tøída SQLite databáze stanic.
+\end{itemize}
+
+\texttt{CellsAdapter} vytváøí z~výstupù funkcí \texttt{getAllCellInfo()},
+\texttt{getNeighboringCellInfo()} a~\texttt{getCellLocation()} jeden seznam
+dostupných základnových stanic, na kterých je zalo¾eno zji¹»ování polohy
+Android zaøízení. V~úvahu bere aplikace pouze ty, co obsahují informaci o~své
+GPS pozici. Pozice jednotlivých stanic se urèuje buï z~offline databáze, nebo
+pøímo z~infromací o~stanici.
+
+\subsubsection*{Výpoèet polohy zaøízení}
+
+Zemìpisná ¹íøka a~zemìpisná délka v~GPS souøadnicích je vypoètena ze souøadnic
+dostupných základnových stanic jako jejich vá¾ený prùmìr. Jako váha jednotlivých
+dvojic souøadnic se bere síla signálu od dané základnové stanice, která je
+v¾dy pøevedena do intervalu 0--100\,\%.
+
+\subsubsection*{Offline databáze}
+
+Databáze základnových stanic byla poøízena ze serveru
+\url{http://opencellid.org/}. V~souèasné dobì obsahuje 6\,891\,207 záznamù
+z~celého svìta. Pro potøeby aplikace byly vybrány pouze záznamy stanic
+s~MCC\footnote{Mobile country code} 230, který nále¾í Èeské republice. Dále
+byly tyto záznamy zkráceny pouze na 4 sloupce
+(\texttt{area} = LAC\footnote{Location area code},
+\texttt{cell} = CID\footnote{Cell ID}, \texttt{lon} = zemìpisná délka,
+\texttt{lat} = zemìpisná ¹íøka). K~dispozici je 85\,398 záznamù pro ÈR.
+
+Záznamy z~databáze jsou, pøi prvním spu¹tìní aplikace na zaøízení, ulo¾eny do
+SQLite databáze pro pohodlnìj¹í pou¾ívání aplikací.
+
+\newpage
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection*{Ovládání aplikace}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[scale=0.5]{img/gui.eps}
+  \caption{Grafické u¾ivatelské rozhraní aplikace.}
+\end{figure}
+
+V~horní èásti aplikace jsou uvedeny vypoètené souøadnice zemìpisné ¹íøky
+(Latitude) a~ze\-mì\-pis\-né délky (Longitude).
+
+Tlaèítko \textit{Update} slou¾í k~aktualizaci (znovuvýpoètu) GPS souøadnic na
+základì dostupných základnových stanic, jejich¾ seznam se pøi stisku také
+aktualizuje.
+
+Pod souøadnicemi a~tlaèítkem je uveden seznam dostupných základnových stanic
+s~jejich informacemi, které jsou právì k~dispozici. Tento seznam není viditelný
+po spu¹tìní aplikace, lze jej zobrazit/skrýt z~menu aplikace volbou
+\textit{Show/Hide cell list}.
+
+Obrazovka aplikace obsahuje Google mapu, na které jsou zobrazeny v~podobì
+vysílaèe stanice vyu¾ité k~výpoètu polohy zaøízení. Poloha zaøízení se na mapì
+zobrazuje jako postavièka Androidu.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection*{Softwarové prostøedky}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Aplikace byla vyvinuta v~\textit{Anroid Studiu 1.0.2}. Celý projekt je dostupný
+ve slo¾ce \texttt{projekt/SEN}. Ke spu¹tìní na mobilním telefonu je vy¾adováno
+minimálnì API~17, co¾ odpovídá Androidu 4.2 (Jelly Bean).
+
+%=============================================================================
+
+% pøílohy
+\appendix
+\end{document}

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">SEN project</string>
+    <string name="action_settings">Show/Hide cell list</string>
+    <string name="creatingDB">Creating BTS DB&#8230;</string>
+    <string name="cellFile">cells_cz.csv</string>
+    <string name="cellFileEncoding">UTF-8</string>
+    <string name="login">xkubis03</string>
+    <string name="buttonText">Update</string>
+    <string name="about">About</string>
+    <string name="title">About</string>
+    <string name="message">SEN project\nRadim KUBIŠ, xkubis03</string>
+
+</resources>
